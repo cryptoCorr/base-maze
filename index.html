@@ -2,14 +2,25 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Base Maze - Speed Run</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Base Maze - Mobile Fix</title>
+    
     <meta property="fc:frame" content="vNext" />
     <meta property="fc:frame:image" content="https://cryptologos.cc/logos/base-base-logo.png" />
     <meta property="og:image" content="https://cryptologos.cc/logos/base-base-logo.png" />
+
     <style>
+        * {
+            box-sizing: border-box;
+            -webkit-user-select: none; /* Chrome/Safari seçimi engelle */
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none; /* Yazı seçimini engelle */
+            -webkit-tap-highlight-color: transparent; /* Tıklama rengini kapat */
+        }
+
         body {
-            background-color: #0f172a; /* Slate 900 */
+            background-color: #0f172a;
             color: white;
             font-family: 'Courier New', Courier, monospace;
             display: flex;
@@ -19,117 +30,122 @@
             height: 100vh;
             margin: 0;
             overflow: hidden;
-            touch-action: none;
+            touch-action: none; /* Sayfa kaydırmayı engelle */
         }
+
         #game-container {
             position: relative;
-            border: 4px solid #334155;
-            border-radius: 12px;
-            padding: 5px;
+            border: 2px solid #334155;
+            border-radius: 8px;
+            padding: 2px;
             background: #1e293b;
-            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+            box-shadow: 0 0 15px rgba(0,0,0,0.5);
+            /* Mobilde ekranın %95'ini kaplasın */
+            max-width: 95vw;
+            max-height: 50vh; 
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
+
         #grid {
             display: grid;
-            gap: 1px;
+            gap: 0;
+            /* Grid boyutları JS ile ayarlanacak */
         }
+
         .cell {
-            width: 20px;
-            height: 20px;
+            /* Boyut JS ile verilecek */
             background-color: #0f172a;
         }
-        .wall {
-            background-color: #475569;
-        }
+        .wall { background-color: #475569; }
+        
+        /* Oyuncu ve Hedef stilleri */
         .player {
             background-color: #22c55e;
             border-radius: 50%;
-            box-shadow: 0 0 10px #22c55e;
+            transform: scale(0.8); /* Hücreden biraz küçük olsun */
+            box-shadow: 0 0 5px #22c55e;
         }
         .goal {
             background-color: #fbbf24;
-            box-shadow: 0 0 15px #fbbf24;
+            transform: scale(0.8);
+            box-shadow: 0 0 5px #fbbf24;
             animation: pulse 1s infinite;
         }
+
         #ui {
-            width: 100%;
-            max-width: 400px;
+            width: 90%;
             display: flex;
             justify-content: space-between;
-            margin-bottom: 15px;
-            font-size: 1.2rem;
+            margin-bottom: 10px;
+            font-size: 1.1rem;
             font-weight: bold;
         }
         .timer { color: #fbbf24; }
-        .danger { color: #ef4444; animation: shake 0.5s infinite; }
-        
-        /* Modal (Game Over) */
+        .danger { color: #ef4444; }
+
+        /* KONTROLLER (Daha büyük ve rahat) */
+        #controls {
+            margin-top: 15px;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            width: 200px; /* Sabit genişlik */
+        }
+
+        .btn-ctrl {
+            width: 60px;
+            height: 60px;
+            background: #334155;
+            border: none;
+            border-radius: 12px;
+            color: white;
+            font-size: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 0 #1e293b;
+            active: transform: translateY(4px); /* Basma efekti */
+        }
+        .btn-ctrl:active {
+            background: #2563eb;
+            box-shadow: none;
+            transform: translateY(4px);
+        }
+
+        /* MODAL */
         #modal {
             display: none;
             position: absolute;
             top: 0; left: 0; right: 0; bottom: 0;
             background: rgba(0,0,0,0.9);
-            z-index: 10;
+            z-index: 50;
             flex-direction: column;
             align-items: center;
             justify-content: center;
             text-align: center;
             padding: 20px;
         }
+        
         .btn-share {
-            background-color: #855DCD; /* Warpcast Purple */
+            background-color: #855DCD;
             color: white;
-            padding: 15px 30px;
-            border: none;
-            border-radius: 50px;
-            font-size: 18px;
-            font-weight: bold;
-            margin-top: 20px;
-            cursor: pointer;
+            padding: 12px 24px;
+            border-radius: 25px;
             text-decoration: none;
-            display: inline-block;
-            box-shadow: 0 4px 15px rgba(133, 93, 205, 0.4);
-            transition: transform 0.2s;
-        }
-        .btn-share:hover { transform: scale(1.05); }
-        .btn-retry {
-            background: transparent;
-            border: 2px solid white;
-            color: white;
-            padding: 10px 20px;
+            font-weight: bold;
             margin-top: 15px;
-            border-radius: 50px;
-            cursor: pointer;
+            display: inline-block;
         }
-
-        /* Controls */
-        #controls {
-            margin-top: 20px;
-            display: grid;
-            grid-template-columns: repeat(3, 70px);
-            gap: 10px;
-        }
-        .btn-ctrl {
-            width: 70px;
-            height: 70px;
-            background: #334155;
-            border: none;
-            border-radius: 15px;
-            color: white;
-            font-size: 30px;
-            cursor: pointer;
-            touch-action: manipulation;
-        }
-        .btn-ctrl:active { background: #2563eb; }
 
         @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.6; } 100% { opacity: 1; } }
-        @keyframes shake { 0% { transform: translate(1px, 1px); } 50% { transform: translate(-1px, -1px); } 100% { transform: translate(1px, -1px); } }
     </style>
 </head>
 <body>
 
     <div id="ui">
-        <span style="color: #3b82f6">Level <span id="level-display">1</span></span>
+        <span style="color: #3b82f6">Lvl <span id="level-display">1</span></span>
         <span class="timer">⏳ <span id="time-display">35</span>s</span>
     </div>
 
@@ -137,38 +153,43 @@
         <div id="grid"></div>
         
         <div id="modal">
-            <h1 style="color: #ef4444; font-size: 40px; margin:0;">GAME OVER</h1>
-            <p style="font-size: 20px; margin-top:10px;">You reached Level <span id="final-score">0</span></p>
-            <p style="font-size: 14px; color: #94a3b8;">Can you beat the 35s timer?</p>
-            
-            <a id="share-link" href="#" target="_blank" class="btn-share">
-                Share on Warpcast 🚀
-            </a>
-            
-            <button class="btn-retry" onclick="location.reload()">Try Again 🔄</button>
+            <h2 style="color: #ef4444; margin:0; font-size: 2rem;">GAME OVER</h2>
+            <p>Score: Level <span id="final-score">0</span></p>
+            <a id="share-link" href="#" target="_blank" class="btn-share">Share on Warpcast</a>
+            <button onclick="location.reload()" style="margin-top:15px; padding:10px; background:none; border:1px solid white; color:white; border-radius:5px;">Try Again</button>
         </div>
     </div>
 
     <div id="controls">
         <div></div>
-        <button class="btn-ctrl" onclick="move(0, -1)">⬆️</button>
+        <div class="btn-ctrl" ontouchstart="handleTouch(event, 0, -1)" onclick="move(0, -1)">⬆️</div>
         <div></div>
-        <button class="btn-ctrl" onclick="move(-1, 0)">⬅️</button>
-        <button class="btn-ctrl" onclick="move(0, 1)">⬇️</button>
-        <button class="btn-ctrl" onclick="move(1, 0)">➡️</button>
+        
+        <div class="btn-ctrl" ontouchstart="handleTouch(event, -1, 0)" onclick="move(-1, 0)">⬅️</div>
+        <div class="btn-ctrl" ontouchstart="handleTouch(event, 0, 1)" onclick="move(0, 1)">⬇️</div>
+        <div class="btn-ctrl" ontouchstart="handleTouch(event, 1, 0)" onclick="move(1, 0)">➡️</div>
     </div>
 
     <script>
-        // --- SETTINGS ---
+        // --- AYARLAR ---
         let level = 1;
         let size = 11; 
-        const FIXED_TIME = 35; // SABİT SÜRE
+        const FIXED_TIME = 35;
         let timeLeft = FIXED_TIME;
         let timerInterval;
         let grid = [];
         let player = {x: 1, y: 1};
         let goal = {x: 9, y: 9};
         let isGameOver = false;
+
+        // --- MOBİL İÇİN HÜCRE BOYUTU HESAPLA ---
+        function getCellSize() {
+            // Ekran genişliğine göre hücre boyutu belirle
+            // Ekranın %90'ını, labirent boyutuna (size) bölüyoruz.
+            const screenWidth = Math.min(window.innerWidth, 500); // Max 500px baz al
+            const maxCellSize = Math.floor((screenWidth * 0.9) / size);
+            return Math.min(maxCellSize, 25); // En fazla 25px olsun
+        }
 
         // --- MAZE GENERATOR ---
         function generateMaze(s) {
@@ -189,24 +210,37 @@
             return maze;
         }
 
-        // --- DRAW GAME ---
+        // --- ÇİZİM (Responsive) ---
         function draw() {
             const gridEl = document.getElementById('grid');
-            gridEl.style.gridTemplateColumns = `repeat(${size}, 20px)`;
+            const cellSize = getCellSize();
+            
+            gridEl.style.gridTemplateColumns = `repeat(${size}, ${cellSize}px)`;
             gridEl.innerHTML = '';
+            
             for(let y=0; y<size; y++) {
                 for(let x=0; x<size; x++) {
                     const cell = document.createElement('div');
+                    cell.style.width = `${cellSize}px`;
+                    cell.style.height = `${cellSize}px`;
                     cell.classList.add('cell');
+                    
                     if (grid[y][x] === 1) cell.classList.add('wall');
                     if (x === player.x && y === player.y) cell.classList.add('player');
                     if (x === goal.x && y === goal.y) cell.classList.add('goal');
+                    
                     gridEl.appendChild(cell);
                 }
             }
         }
 
-        // --- MOVE ---
+        // --- MOBİL DOKUNMA YÖNETİMİ ---
+        function handleTouch(e, dx, dy) {
+            e.preventDefault(); // Çift tıklama zoom'unu engelle
+            move(dx, dy);
+        }
+
+        // --- HAREKET ---
         function move(dx, dy) {
             if(isGameOver) return;
             let nx = player.x + dx;
@@ -219,49 +253,34 @@
             }
         }
 
-        // --- CHECK WIN ---
         function checkWin() {
             if (player.x === goal.x && player.y === goal.y) {
                 level++;
                 size += 2; 
-                timeLeft = FIXED_TIME; // SÜRE SIFIRLANIYOR (Hep 35s)
+                timeLeft = FIXED_TIME;
                 startGame();
             }
         }
 
-        // --- GAME OVER ---
         function endGame() {
             isGameOver = true;
             clearInterval(timerInterval);
-            
-            // Warpcast Linkini Oluştur
             const text = `I reached Level ${level} in Base Maze! 🧩 Can you beat the timer? ⏳ @base`;
-            // Not: Vercel linkini aldıktan sonra buraya manuel ekleyebilirsin ama şimdilik sadece text gidecek.
             const url = `https://warpcast.com/~/compose?text=${encodeURIComponent(text)}`; 
-            
             document.getElementById('share-link').href = url;
             document.getElementById('final-score').innerText = level;
             document.getElementById('modal').style.display = 'flex';
         }
 
-        // --- TIMER ---
         function startTimer() {
             clearInterval(timerInterval);
             timerInterval = setInterval(() => {
                 timeLeft--;
-                const timeDisplay = document.getElementById('time-display');
-                timeDisplay.innerText = timeLeft;
-                
-                if(timeLeft <= 10) timeDisplay.parentElement.classList.add('danger');
-                else timeDisplay.parentElement.classList.remove('danger');
-
-                if (timeLeft <= 0) {
-                    endGame();
-                }
+                document.getElementById('time-display').innerText = timeLeft;
+                if (timeLeft <= 0) endGame();
             }, 1000);
         }
 
-        // --- START ---
         function startGame() {
             player = {x: 1, y: 1};
             goal = {x: size-2, y: size-2};
@@ -271,13 +290,16 @@
             if(level === 1) startTimer();
         }
 
-        // Keyboard support
+        // Klavye (PC için)
         window.addEventListener('keydown', (e) => {
             if(e.key === "ArrowUp") move(0, -1);
             if(e.key === "ArrowDown") move(0, 1);
             if(e.key === "ArrowLeft") move(-1, 0);
             if(e.key === "ArrowRight") move(1, 0);
         });
+
+        // Ekran döndürülürse labirenti yeniden boyutlandır
+        window.addEventListener('resize', draw);
 
         startGame();
     </script>
