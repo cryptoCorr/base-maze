@@ -3,20 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Base Maze - Mobile Fix</title>
+    <title>Base Maze - Speed Run</title>
     
+    <meta property="og:title" content="Base Maze: Speed Run" />
+    <meta property="og:description" content="Can you beat the 35s timer? Play the infinite maze on Base." />
+    <meta property="og:image" content="https://cryptologos.cc/logos/base-base-logo.png" />
     <meta property="fc:frame" content="vNext" />
     <meta property="fc:frame:image" content="https://cryptologos.cc/logos/base-base-logo.png" />
-    <meta property="og:image" content="https://cryptologos.cc/logos/base-base-logo.png" />
+    <meta property="fc:frame:button:1" content="Play Game 🎮" />
 
     <style>
         * {
             box-sizing: border-box;
-            -webkit-user-select: none; /* Chrome/Safari seçimi engelle */
-            -moz-user-select: none;
-            -ms-user-select: none;
-            user-select: none; /* Yazı seçimini engelle */
-            -webkit-tap-highlight-color: transparent; /* Tıklama rengini kapat */
+            -webkit-user-select: none;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
         }
 
         body {
@@ -30,7 +31,7 @@
             height: 100vh;
             margin: 0;
             overflow: hidden;
-            touch-action: none; /* Sayfa kaydırmayı engelle */
+            touch-action: none;
         }
 
         #game-container {
@@ -40,9 +41,8 @@
             padding: 2px;
             background: #1e293b;
             box-shadow: 0 0 15px rgba(0,0,0,0.5);
-            /* Mobilde ekranın %95'ini kaplasın */
             max-width: 95vw;
-            max-height: 50vh; 
+            max-height: 55vh; 
             display: flex;
             align-items: center;
             justify-content: center;
@@ -51,20 +51,15 @@
         #grid {
             display: grid;
             gap: 0;
-            /* Grid boyutları JS ile ayarlanacak */
         }
 
-        .cell {
-            /* Boyut JS ile verilecek */
-            background-color: #0f172a;
-        }
+        .cell { background-color: #0f172a; }
         .wall { background-color: #475569; }
         
-        /* Oyuncu ve Hedef stilleri */
         .player {
             background-color: #22c55e;
             border-radius: 50%;
-            transform: scale(0.8); /* Hücreden biraz küçük olsun */
+            transform: scale(0.8);
             box-shadow: 0 0 5px #22c55e;
         }
         .goal {
@@ -85,13 +80,12 @@
         .timer { color: #fbbf24; }
         .danger { color: #ef4444; }
 
-        /* KONTROLLER (Daha büyük ve rahat) */
         #controls {
             margin-top: 15px;
             display: grid;
             grid-template-columns: repeat(3, 1fr);
             gap: 8px;
-            width: 200px; /* Sabit genişlik */
+            width: 200px;
         }
 
         .btn-ctrl {
@@ -106,7 +100,6 @@
             align-items: center;
             justify-content: center;
             box-shadow: 0 4px 0 #1e293b;
-            active: transform: translateY(4px); /* Basma efekti */
         }
         .btn-ctrl:active {
             background: #2563eb;
@@ -114,7 +107,6 @@
             transform: translateY(4px);
         }
 
-        /* MODAL */
         #modal {
             display: none;
             position: absolute;
@@ -131,12 +123,15 @@
         .btn-share {
             background-color: #855DCD;
             color: white;
-            padding: 12px 24px;
+            padding: 15px 30px;
             border-radius: 25px;
             text-decoration: none;
             font-weight: bold;
             margin-top: 15px;
             display: inline-block;
+            font-size: 18px;
+            box-shadow: 0 0 15px rgba(133, 93, 205, 0.5);
+            border: 2px solid #a78bfa;
         }
 
         @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.6; } 100% { opacity: 1; } }
@@ -153,10 +148,14 @@
         <div id="grid"></div>
         
         <div id="modal">
-            <h2 style="color: #ef4444; margin:0; font-size: 2rem;">GAME OVER</h2>
-            <p>Score: Level <span id="final-score">0</span></p>
-            <a id="share-link" href="#" target="_blank" class="btn-share">Share on Warpcast</a>
-            <button onclick="location.reload()" style="margin-top:15px; padding:10px; background:none; border:1px solid white; color:white; border-radius:5px;">Try Again</button>
+            <h2 style="color: #ef4444; margin:0; font-size: 2.5rem;">GAME OVER</h2>
+            <p style="font-size: 1.2rem; margin: 10px 0;">Level Reached: <span id="final-score" style="color:#fbbf24; font-weight:bold;">0</span></p>
+            
+            <a id="share-link" href="#" target="_blank" class="btn-share">
+                Share on Farcaster 🟣
+            </a>
+            
+            <button onclick="location.reload()" style="margin-top:20px; padding:10px 20px; background:none; border:1px solid #94a3b8; color:#94a3b8; border-radius:5px; cursor:pointer;">Try Again</button>
         </div>
     </div>
 
@@ -164,14 +163,12 @@
         <div></div>
         <div class="btn-ctrl" ontouchstart="handleTouch(event, 0, -1)" onclick="move(0, -1)">⬆️</div>
         <div></div>
-        
         <div class="btn-ctrl" ontouchstart="handleTouch(event, -1, 0)" onclick="move(-1, 0)">⬅️</div>
         <div class="btn-ctrl" ontouchstart="handleTouch(event, 0, 1)" onclick="move(0, 1)">⬇️</div>
         <div class="btn-ctrl" ontouchstart="handleTouch(event, 1, 0)" onclick="move(1, 0)">➡️</div>
     </div>
 
     <script>
-        // --- AYARLAR ---
         let level = 1;
         let size = 11; 
         const FIXED_TIME = 35;
@@ -182,16 +179,12 @@
         let goal = {x: 9, y: 9};
         let isGameOver = false;
 
-        // --- MOBİL İÇİN HÜCRE BOYUTU HESAPLA ---
         function getCellSize() {
-            // Ekran genişliğine göre hücre boyutu belirle
-            // Ekranın %90'ını, labirent boyutuna (size) bölüyoruz.
-            const screenWidth = Math.min(window.innerWidth, 500); // Max 500px baz al
+            const screenWidth = Math.min(window.innerWidth, 500); 
             const maxCellSize = Math.floor((screenWidth * 0.9) / size);
-            return Math.min(maxCellSize, 25); // En fazla 25px olsun
+            return Math.min(maxCellSize, 25);
         }
 
-        // --- MAZE GENERATOR ---
         function generateMaze(s) {
             let maze = Array(s).fill().map(() => Array(s).fill(1));
             function carve(x, y) {
@@ -210,37 +203,30 @@
             return maze;
         }
 
-        // --- ÇİZİM (Responsive) ---
         function draw() {
             const gridEl = document.getElementById('grid');
             const cellSize = getCellSize();
-            
             gridEl.style.gridTemplateColumns = `repeat(${size}, ${cellSize}px)`;
             gridEl.innerHTML = '';
-            
             for(let y=0; y<size; y++) {
                 for(let x=0; x<size; x++) {
                     const cell = document.createElement('div');
                     cell.style.width = `${cellSize}px`;
                     cell.style.height = `${cellSize}px`;
                     cell.classList.add('cell');
-                    
                     if (grid[y][x] === 1) cell.classList.add('wall');
                     if (x === player.x && y === player.y) cell.classList.add('player');
                     if (x === goal.x && y === goal.y) cell.classList.add('goal');
-                    
                     gridEl.appendChild(cell);
                 }
             }
         }
 
-        // --- MOBİL DOKUNMA YÖNETİMİ ---
         function handleTouch(e, dx, dy) {
-            e.preventDefault(); // Çift tıklama zoom'unu engelle
+            e.preventDefault(); 
             move(dx, dy);
         }
 
-        // --- HAREKET ---
         function move(dx, dy) {
             if(isGameOver) return;
             let nx = player.x + dx;
@@ -262,12 +248,22 @@
             }
         }
 
+        // --- KRİTİK BÖLÜM: PAYLAŞIM LİNKİ AYARI ---
         function endGame() {
             isGameOver = true;
             clearInterval(timerInterval);
-            const text = `I reached Level ${level} in Base Maze! 🧩 Can you beat the timer? ⏳ @base`;
-            const url = `https://warpcast.com/~/compose?text=${encodeURIComponent(text)}`; 
-            document.getElementById('share-link').href = url;
+            
+            // 1. Mevcut oyunun adresini (Vercel linkini) otomatik al
+            const currentUrl = window.location.href;
+            
+            // 2. Paylaşım metni
+            const text = `I reached Level ${level} in Base Maze! 🧩 Can you beat the timer? @base`;
+            
+            // 3. Mini App v2 Linki (embeds parametresi ile)
+            // embeds[] parametresi linkin "Frame" olarak görünmesini sağlar
+            const shareUrl = `https://warpcast.com/~/compose?text=${encodeURIComponent(text)}&embeds[]=${encodeURIComponent(currentUrl)}`; 
+            
+            document.getElementById('share-link').href = shareUrl;
             document.getElementById('final-score').innerText = level;
             document.getElementById('modal').style.display = 'flex';
         }
@@ -290,7 +286,6 @@
             if(level === 1) startTimer();
         }
 
-        // Klavye (PC için)
         window.addEventListener('keydown', (e) => {
             if(e.key === "ArrowUp") move(0, -1);
             if(e.key === "ArrowDown") move(0, 1);
@@ -298,7 +293,6 @@
             if(e.key === "ArrowRight") move(1, 0);
         });
 
-        // Ekran döndürülürse labirenti yeniden boyutlandır
         window.addEventListener('resize', draw);
 
         startGame();
