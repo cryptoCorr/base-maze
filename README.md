@@ -7,7 +7,7 @@
 The goal is simple: Navigate through infinite levels of mazes. But there's a catch — you only have **35 seconds** per level! ⏳
 
 ### 🚀 Live Demo
-👉 **[Play Now](https://senin-vercel-linkin.vercel.app)** *(Replace with your Vercel link)*
+👉 **[Play Now(https://base-maze-eosin.vercel.app/])** *(Replace with your Vercel link)*
 
 ---
 
