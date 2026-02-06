@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Base Maze - Speed Run</title>
+    <meta property="fc:frame" content="vNext" />
+    <meta property="fc:frame:image" content="https://cryptologos.cc/logos/base-base-logo.png" />
+    <meta property="og:image" content="https://cryptologos.cc/logos/base-base-logo.png" />
+    <style>
+        body {
+            background-color: #0f172a; /* Slate 900 */
+            color: white;
+            font-family: 'Courier New', Courier, monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
+            touch-action: none;
+        }
+        #game-container {
+            position: relative;
+            border: 4px solid #334155;
+            border-radius: 12px;
+            padding: 5px;
+            background: #1e293b;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+        }
+        #grid {
+            display: grid;
+            gap: 1px;
+        }
+        .cell {
+            width: 20px;
+            height: 20px;
+            background-color: #0f172a;
+        }
+        .wall {
+            background-color: #475569;
+        }
+        .player {
+            background-color: #22c55e;
+            border-radius: 50%;
+            box-shadow: 0 0 10px #22c55e;
+        }
+        .goal {
+            background-color: #fbbf24;
+            box-shadow: 0 0 15px #fbbf24;
+            animation: pulse 1s infinite;
+        }
+        #ui {
+            width: 100%;
+            max-width: 400px;
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 15px;
+            font-size: 1.2rem;
+            font-weight: bold;
+        }
+        .timer { color: #fbbf24; }
+        .danger { color: #ef4444; animation: shake 0.5s infinite; }
+        
+        /* Modal (Game Over) */
+        #modal {
+            display: none;
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.9);
+            z-index: 10;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 20px;
+        }
+        .btn-share {
+            background-color: #855DCD; /* Warpcast Purple */
+            color: white;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 50px;
+            font-size: 18px;
+            font-weight: bold;
+            margin-top: 20px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            box-shadow: 0 4px 15px rgba(133, 93, 205, 0.4);
+            transition: transform 0.2s;
+        }
+        .btn-share:hover { transform: scale(1.05); }
+        .btn-retry {
+            background: transparent;
+            border: 2px solid white;
+            color: white;
+            padding: 10px 20px;
+            margin-top: 15px;
+            border-radius: 50px;
+            cursor: pointer;
+        }
+
+        /* Controls */
+        #controls {
+            margin-top: 20px;
+            display: grid;
+            grid-template-columns: repeat(3, 70px);
+            gap: 10px;
+        }
+        .btn-ctrl {
+            width: 70px;
+            height: 70px;
+            background: #334155;
+            border: none;
+            border-radius: 15px;
+            color: white;
+            font-size: 30px;
+            cursor: pointer;
+            touch-action: manipulation;
+        }
+        .btn-ctrl:active { background: #2563eb; }
+
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.6; } 100% { opacity: 1; } }
+        @keyframes shake { 0% { transform: translate(1px, 1px); } 50% { transform: translate(-1px, -1px); } 100% { transform: translate(1px, -1px); } }
+    </style>
+</head>
+<body>
+
+    <div id="ui">
+        <span style="color: #3b82f6">Level <span id="level-display">1</span></span>
+        <span class="timer">⏳ <span id="time-display">35</span>s</span>
+    </div>
+
+    <div id="game-container">
+        <div id="grid"></div>
+        
+        <div id="modal">
+            <h1 style="color: #ef4444; font-size: 40px; margin:0;">GAME OVER</h1>
+            <p style="font-size: 20px; margin-top:10px;">You reached Level <span id="final-score">0</span></p>
+            <p style="font-size: 14px; color: #94a3b8;">Can you beat the 35s timer?</p>
+            
+            <a id="share-link" href="#" target="_blank" class="btn-share">
+                Share on Warpcast 🚀
+            </a>
+            
+            <button class="btn-retry" onclick="location.reload()">Try Again 🔄</button>
+        </div>
+    </div>
+
+    <div id="controls">
+        <div></div>
+        <button class="btn-ctrl" onclick="move(0, -1)">⬆️</button>
+        <div></div>
+        <button class="btn-ctrl" onclick="move(-1, 0)">⬅️</button>
+        <button class="btn-ctrl" onclick="move(0, 1)">⬇️</button>
+        <button class="btn-ctrl" onclick="move(1, 0)">➡️</button>
+    </div>
+
+    <script>
+        // --- SETTINGS ---
+        let level = 1;
+        let size = 11; 
+        const FIXED_TIME = 35; // SABİT SÜRE
+        let timeLeft = FIXED_TIME;
+        let timerInterval;
+        let grid = [];
+        let player = {x: 1, y: 1};
+        let goal = {x: 9, y: 9};
+        let isGameOver = false;
+
+        // --- MAZE GENERATOR ---
+        function generateMaze(s) {
+            let maze = Array(s).fill().map(() => Array(s).fill(1));
+            function carve(x, y) {
+                maze[y][x] = 0;
+                let directions = [[0, 2], [0, -2], [2, 0], [-2, 0]];
+                directions.sort(() => Math.random() - 0.5); 
+                for (let [dx, dy] of directions) {
+                    let nx = x + dx, ny = y + dy;
+                    if (ny > 0 && ny < s-1 && nx > 0 && nx < s-1 && maze[ny][nx] === 1) {
+                        maze[y + dy/2][x + dx/2] = 0; 
+                        carve(nx, ny);
+                    }
+                }
+            }
+            carve(1, 1);
+            return maze;
+        }
+
+        // --- DRAW GAME ---
+        function draw() {
+            const gridEl = document.getElementById('grid');
+            gridEl.style.gridTemplateColumns = `repeat(${size}, 20px)`;
+            gridEl.innerHTML = '';
+            for(let y=0; y<size; y++) {
+                for(let x=0; x<size; x++) {
+                    const cell = document.createElement('div');
+                    cell.classList.add('cell');
+                    if (grid[y][x] === 1) cell.classList.add('wall');
+                    if (x === player.x && y === player.y) cell.classList.add('player');
+                    if (x === goal.x && y === goal.y) cell.classList.add('goal');
+                    gridEl.appendChild(cell);
+                }
+            }
+        }
+
+        // --- MOVE ---
+        function move(dx, dy) {
+            if(isGameOver) return;
+            let nx = player.x + dx;
+            let ny = player.y + dy;
+            if (grid[ny] && grid[ny][nx] === 0) {
+                player.x = nx;
+                player.y = ny;
+                draw();
+                checkWin();
+            }
+        }
+
+        // --- CHECK WIN ---
+        function checkWin() {
+            if (player.x === goal.x && player.y === goal.y) {
+                level++;
+                size += 2; 
+                timeLeft = FIXED_TIME; // SÜRE SIFIRLANIYOR (Hep 35s)
+                startGame();
+            }
+        }
+
+        // --- GAME OVER ---
+        function endGame() {
+            isGameOver = true;
+            clearInterval(timerInterval);
+            
+            // Warpcast Linkini Oluştur
+            const text = `I reached Level ${level} in Base Maze! 🧩 Can you beat the timer? ⏳ @base`;
+            // Not: Vercel linkini aldıktan sonra buraya manuel ekleyebilirsin ama şimdilik sadece text gidecek.
+            const url = `https://warpcast.com/~/compose?text=${encodeURIComponent(text)}`; 
+            
+            document.getElementById('share-link').href = url;
+            document.getElementById('final-score').innerText = level;
+            document.getElementById('modal').style.display = 'flex';
+        }
+
+        // --- TIMER ---
+        function startTimer() {
+            clearInterval(timerInterval);
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                const timeDisplay = document.getElementById('time-display');
+                timeDisplay.innerText = timeLeft;
+                
+                if(timeLeft <= 10) timeDisplay.parentElement.classList.add('danger');
+                else timeDisplay.parentElement.classList.remove('danger');
+
+                if (timeLeft <= 0) {
+                    endGame();
+                }
+            }, 1000);
+        }
+
+        // --- START ---
+        function startGame() {
+            player = {x: 1, y: 1};
+            goal = {x: size-2, y: size-2};
+            grid = generateMaze(size);
+            document.getElementById('level-display').innerText = level;
+            draw();
+            if(level === 1) startTimer();
+        }
+
+        // Keyboard support
+        window.addEventListener('keydown', (e) => {
+            if(e.key === "ArrowUp") move(0, -1);
+            if(e.key === "ArrowDown") move(0, 1);
+            if(e.key === "ArrowLeft") move(-1, 0);
+            if(e.key === "ArrowRight") move(1, 0);
+        });
+
+        startGame();
+    </script>
+</body>
+</html>
